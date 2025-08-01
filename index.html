@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Interactive Evolution of Neural Networks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Neutrals -->
+    <!-- Application Structure Plan: The application is designed as an interactive dashboard centered around a historical timeline. This structure was chosen to transform the dense, chronological report into an exploratory experience. The main navigation allows users to jump to key paradigms (CNNs, Transformers, etc.), while the timeline encourages a chronological journey. Clicking a model on the timeline updates a central content panel, which uses cards, tabs, and a dynamic chart to present detailed information without overwhelming the user. This non-linear, interactive approach is superior to a static, linear document for user engagement and understanding of complex relationships and evolutionary trends. -->
+    <!-- Visualization & Content Choices: 
+        - Timeline (Change/Organize): An interactive HTML/CSS timeline shows the evolution. Clicking a model updates the view. Justification: Provides an intuitive historical overview.
+        - Model Comparison (Compare): A dynamic Chart.js radar chart compares qualitative aspects (Complexity, Impact, Efficiency) of a selected model against its contemporaries. Justification: Visual comparison is more effective than text.
+        - Architectural Diagrams (Inform/Organize): Simplified diagrams built with HTML/Tailwind CSS represent model structures (e.g., skip connections, GAN loops). Justification: Visuals are more intuitive than descriptions.
+        - Tabbed Info (Organize): Detailed text (Advantages, Limitations, Applications) is organized into tabs to reduce clutter. Justification: Allows user-directed deep dives.
+        - Key Stats (Inform): A card displays key facts like year and developers for quick reference.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4;
+            color: #4A4A4A;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+
+        .nav-button.active {
+            background-color: #4DB6AC;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-point {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .timeline-point.active {
+            transform: scale(1.5);
+            background-color: #FFC107;
+        }
+
+        .timeline-point.active .timeline-popup {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(-10px);
+        }
+
+        .tab-button.active {
+            border-bottom-color: #4DB6AC;
+            color: #4DB6AC;
+            font-weight: 600;
+        }
+
+        .content-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .timeline-line {
+            background: #e0e0e0;
+            height: 2px;
+            width: 100%;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: -1;
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+
+    <div id="app" class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-stone-800 mb-2">The Evolution of Neural Networks</h1>
+            <p class="text-lg text-stone-600 max-w-3xl mx-auto">An interactive journey through the key architectures
+                that have defined the field of artificial intelligence. Click on the timeline or use the filters to
+                explore.</p>
+        </header>
+
+        <nav id="main-nav" class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+        </nav>
+
+        <section id="timeline-section" class="mb-10 p-4 bg-white rounded-xl shadow-md">
+            <h2 class="text-2xl font-bold text-center mb-6 text-stone-700">Historical Timeline</h2>
+            <div id="timeline" class="relative w-full overflow-x-auto pb-8">
+                <div class="timeline-line"></div>
+                <div id="timeline-points" class="flex items-center justify-between min-w-[1200px] md:min-w-full px-4">
+                </div>
+            </div>
+        </section>
+
+        <main id="content-area" class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-lg content-fade-in">
+                <div id="model-header" class="mb-6 border-b pb-4">
+                    <h2 id="model-name" class="text-3xl font-bold text-stone-800"></h2>
+                    <p id="model-meta" class="text-md text-stone-500"></p>
+                </div>
+
+                <div id="model-summary" class="mb-6">
+                    <h3 class="text-xl font-semibold mb-2 text-stone-700">Core Principle</h3>
+                    <p id="summary-text" class="text-stone-600 leading-relaxed"></p>
+                </div>
+
+                <div id="model-innovations" class="mb-6">
+                    <h3 class="text-xl font-semibold mb-3 text-stone-700">Key Innovations</h3>
+                    <ul id="innovations-list" class="list-none space-y-2">
+                    </ul>
+                </div>
+
+                <div id="model-details">
+                    <div class="border-b mb-4">
+                        <nav id="tabs" class="flex -mb-px space-x-6">
+                        </nav>
+                    </div>
+                    <div id="tab-content" class="p-2">
+                    </div>
+                </div>
+            </div>
+
+            <aside class="lg:col-span-2 space-y-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg content-fade-in">
+                    <h3 class="text-xl font-semibold mb-4 text-center text-stone-700">Conceptual Architecture</h3>
+                    <div id="architecture-diagram"
+                        class="min-h-[250px] flex items-center justify-center p-4 bg-stone-50 rounded-lg">
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg content-fade-in">
+                    <h3 class="text-xl font-semibold mb-4 text-center text-stone-700">Model Comparison</h3>
+                    <div class="chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+        const modelData = {
+            'mcculloch-pitts': {
+                name: 'McCulloch-Pitts Neuron',
+                year: 1943,
+                category: 'Foundational',
+                meta: 'By Walter Pitts & Warren McCulloch',
+                summary: 'The first formal model of an artificial neuron, conceptualized as a simple threshold logic unit capable of executing basic logic functions.',
+                innovations: [
+                    '&#129504; First formal model of an artificial neuron.',
+                    '&#128279; Introduced the concept of threshold logic.',
+                    '&#128187; Laid the theoretical foundation for neural computation.'
+                ],
+                advantages: 'Established the core idea that simple computational units could perform logic, paving the way for all future work.',
+                limitations: 'Weights had to be set manually and could not be learned from data. Limited to simple logic functions.',
+                applications: 'Primarily a theoretical model used to explore the computational capabilities of simple neural networks.',
+                architecture: { type: 'simple', layers: ['Input', 'Threshold Unit', 'Output'] },
+                comparison: { impact: 2, complexity: 1, efficiency: 1 }
+            },
+            'perceptron': {
+                name: 'Perceptron',
+                year: 1957,
+                category: 'Foundational',
+                meta: 'By Frank Rosenblatt',
+                summary: 'An early neural network for binary classification that introduced a learning algorithm to automatically adjust its weights based on training data.',
+                innovations: [
+                    '&#127919; Introduced a learning algorithm (Perceptron Learning Rule).',
+                    '&#128202; Capable of autonomous learning from data.',
+                    '&#128187; One of the first models for binary classification.'
+                ],
+                advantages: 'Could learn from data, a major step beyond the McCulloch-Pitts neuron. Simple and easy to understand.',
+                limitations: 'Could only solve linearly separable problems. Famously failed on the XOR problem, leading to an "AI winter".',
+                applications: 'Simple binary classification tasks where data could be separated by a single line.',
+                architecture: { type: 'simple', layers: ['Inputs', 'Weighted Sum + Step Function', 'Output'] },
+                comparison: { impact: 4, complexity: 2, efficiency: 2 }
+            },
+            'backpropagation': {
+                name: 'Backpropagation',
+                year: 1986,
+                category: 'Foundational',
+                meta: 'Popularized by Rumelhart, Hinton & Williams',
+                summary: 'A supervised learning algorithm that enabled the effective training of Multi-Layer Perceptrons (MLPs) by propagating error gradients from the output layer back through the network.',
+                innovations: [
+                    '&#128200; Enabled effective training of deep, multi-layer networks.',
+                    '&#128273; Solved the XOR problem and other non-linear classification tasks.',
+                    '&#129504; Laid the groundwork for the entire field of deep learning.'
+                ],
+                advantages: 'Allowed networks to learn complex, non-linear patterns. Made MLPs universal function approximators.',
+                limitations: 'Can be computationally expensive. Prone to vanishing/exploding gradients in very deep networks without modern techniques.',
+                applications: 'The core training algorithm for the vast majority of neural networks, from simple MLPs to complex deep learning models.',
+                architecture: { type: 'flow', steps: ['Forward Pass', 'Calculate Error', 'Backward Pass (Propagate Gradients)', 'Update Weights'] },
+                comparison: { impact: 10, complexity: 5, efficiency: 4 }
+            },
+            'lenet': {
+                name: 'LeNet-5',
+                year: 1998,
+                category: 'CNN',
+                meta: 'By Yann LeCun et al.',
+                summary: 'One of the earliest and most successful Convolutional Neural Networks, specifically designed for handwritten digit recognition.',
+                innovations: [
+                    '&#128065; Introduced local receptive fields and shared weights.',
+                    '&#128269; Utilized convolutional and pooling (subsampling) layers.',
+                    '&#128190; Successfully applied backpropagation to a practical vision task.'
+                ],
+                advantages: 'Highly effective for its task. Its core principles (convolution, pooling) became standard in all modern CNNs.',
+                limitations: 'Small scale, used `tanh` activation which is slower than modern ReLU. Not as deep as modern networks.',
+                applications: 'Handwritten digit and character recognition, famously used for reading checks in ATMs.',
+                architecture: { type: 'cnn', layers: ['Conv', 'Pool', 'Conv', 'Pool', 'FC', 'FC', 'Output'] },
+                comparison: { impact: 7, complexity: 4, efficiency: 5 }
+            },
+            'alexnet': {
+                name: 'AlexNet',
+                year: 2012,
+                category: 'CNN',
+                meta: 'By Alex Krizhevsky et al.',
+                summary: 'A deep CNN that won the 2012 ImageNet challenge, proving the power of deep learning on GPUs and sparking the modern AI revolution.',
+                innovations: [
+                    '&#128736; First large-scale use of GPUs for training deep networks.',
+                    '&#9889; Popularized the ReLU activation function, speeding up training.',
+                    '&#128421; Used dropout regularization to combat overfitting.'
+                ],
+                advantages: 'Significantly outperformed all previous methods on ImageNet. Its success was a catalyst for the deep learning boom.',
+                limitations: 'Considered computationally heavy and large by modern standards. Architecture is less refined than later models.',
+                applications: 'Large-scale image classification, object recognition, and served as a base for transfer learning.',
+                architecture: { type: 'cnn', layers: ['Conv', 'Pool', 'Conv', 'Pool', 'Conv', 'Conv', 'Conv', 'Pool', 'FC', 'FC', 'Output'] },
+                comparison: { impact: 9, complexity: 6, efficiency: 3 }
+            },
+            'resnet': {
+                name: 'ResNet',
+                year: 2015,
+                category: 'CNN',
+                meta: 'By Kaiming He et al. (Microsoft)',
+                summary: 'Introduced "residual blocks" with skip connections to solve the vanishing gradient problem, enabling the training of extremely deep networks (100+ layers).',
+                innovations: [
+                    '&#128279; Introduced skip connections (residual learning).',
+                    '&#128205; Enabled effective training of networks with hundreds of layers.',
+                    '&#127942; Solved the accuracy degradation problem in very deep models.'
+                ],
+                advantages: 'Allows for unprecedented network depth, leading to state-of-the-art accuracy. Prevents vanishing gradients. Excellent for transfer learning.',
+                limitations: 'Can still be computationally intensive for the deepest versions. The architecture is more complex than VGG.',
+                applications: 'Image classification, object detection, segmentation, and as a backbone for countless other vision tasks.',
+                architecture: { type: 'resnet', layers: ['Input', 'Conv Block', 'Residual Block (Skip Connection)', 'Output'] },
+                comparison: { impact: 10, complexity: 7, efficiency: 6 }
+            },
+            'efficientnet': {
+                name: 'EfficientNet',
+                year: 2019,
+                category: 'CNN',
+                meta: 'By Mingxing Tan & Quoc V. Le (Google)',
+                summary: 'A family of models that uses a "compound scaling" method to systematically balance network depth, width, and resolution for maximum efficiency.',
+                innovations: [
+                    '&#128208; Introduced compound scaling for all network dimensions.',
+                    '&#129302; Achieved state-of-the-art accuracy with far fewer parameters.',
+                    '&#128260; Based on an efficient mobile-friendly architecture (MBConv).'
+                ],
+                advantages: 'Extremely high accuracy with significantly lower computational cost and parameter count. Highly scalable.',
+                limitations: 'The compound scaling coefficients were found via neural architecture search, which is computationally expensive to replicate.',
+                applications: 'Image classification, object detection, and any vision task where computational efficiency is critical.',
+                architecture: { type: 'flow', steps: ['Input Image', 'MBConv Blocks', 'Compound Scaling (Depth, Width, Resolution)', 'Output'] },
+                comparison: { impact: 9, complexity: 8, efficiency: 10 }
+            },
+            'lstm': {
+                name: 'LSTM',
+                year: 1997,
+                category: 'Sequential',
+                meta: 'By Hochreiter & Schmidhuber',
+                summary: 'A type of Recurrent Neural Network (RNN) that uses a sophisticated gating mechanism to learn long-term dependencies and solve the vanishing gradient problem.',
+                innovations: [
+                    '&#128273; Introduced gating mechanisms (forget, input, output gates).',
+                    '&#128190; Maintained a "cell state" to carry information over long sequences.',
+                    '&#128200; Effectively solved the vanishing gradient problem in RNNs.'
+                ],
+                advantages: 'Excellent at capturing long-range dependencies in sequential data. Robust to noise and variable-length sequences.',
+                limitations: 'More complex and computationally slower than basic RNNs or GRUs. Slower to train than Transformers due to sequential nature.',
+                applications: 'Machine translation, speech recognition, time series analysis, handwriting recognition, language modeling.',
+                architecture: { type: 'rnn_gated', gates: ['Forget Gate', 'Input Gate', 'Output Gate'], core: 'Cell State' },
+                comparison: { impact: 8, complexity: 7, efficiency: 4 }
+            },
+            'gan': {
+                name: 'GAN',
+                year: 2014,
+                category: 'Generative',
+                meta: 'By Ian Goodfellow et al.',
+                summary: 'A generative model framework where two networks, a Generator and a Discriminator, are trained in an adversarial, zero-sum game to produce realistic synthetic data.',
+                innovations: [
+                    '&#127918; Introduced adversarial training framework.',
+                    '&#128125; Generator creates data, Discriminator evaluates it.',
+                    '&#128526; Capable of generating highly realistic, novel data samples.'
+                ],
+                advantages: 'Can produce state-of-the-art, high-quality generated images and other data. Does not require a complex loss function based on data structure.',
+                limitations: 'Training can be unstable and difficult to converge. Prone to issues like mode collapse (lack of diversity).',
+                applications: 'Image synthesis, style transfer, data augmentation, super-resolution, creating "deepfakes".',
+                architecture: { type: 'gan' },
+                comparison: { impact: 9, complexity: 8, efficiency: 5 }
+            },
+            'diffusion': {
+                name: 'Diffusion Models',
+                year: 2020,
+                category: 'Generative',
+                meta: 'Popularized by Ho et al. (DDPM)',
+                summary: 'A class of generative models that learn to create data by reversing a gradual noising process, starting from pure noise and refining it into a clean sample.',
+                innovations: [
+                    '&#127744; Two-step process: forward (noising) and reverse (denoising).',
+                    '&#128372; Iteratively refines a sample from pure noise.',
+                    '&#127912; Achieves state-of-the-art image quality and diversity.'
+                ],
+                advantages: 'Produces extremely high-quality and diverse samples, often better than GANs. Training is stable and does not suffer from mode collapse.',
+                limitations: 'Sampling process is slow and iterative, making inference much slower than single-pass models like GANs.',
+                applications: 'Text-to-image generation (e.g., Stable Diffusion, DALL-E 2), image inpainting, super-resolution, molecule generation.',
+                architecture: { type: 'flow', steps: ['Clean Image', 'Forward Process (Add Noise)', 'Pure Noise', 'Reverse Process (Denoise)', 'Generated Image'] },
+                comparison: { impact: 10, complexity: 8, efficiency: 2 }
+            },
+            'transformer': {
+                name: 'Transformer',
+                year: 2017,
+                category: 'Transformer',
+                meta: 'By Vaswani et al. (Google)',
+                summary: 'A revolutionary architecture for sequence modeling that relies entirely on self-attention mechanisms, abandoning recurrence and enabling massive parallelization.',
+                innovations: [
+                    '&#128161; Introduced the self-attention mechanism as the core component.',
+                    '&#128640; Eliminated recurrence (RNNs), allowing for parallel processing.',
+                    '&#127758; Enabled the scaling up to massive models (LLMs).'
+                ],
+                advantages: 'Highly parallelizable, leading to much faster training on GPUs. Superior at capturing long-range dependencies. The foundation for modern LLMs.',
+                limitations: 'Computation scales quadratically with sequence length, making it expensive for very long sequences.',
+                applications: 'The foundation for nearly all modern NLP tasks: machine translation, text generation (GPT), language understanding (BERT), and now vision (ViT).',
+                architecture: { type: 'transformer' },
+                comparison: { impact: 10, complexity: 9, efficiency: 7 }
+            },
+            'bert': {
+                name: 'BERT',
+                year: 2018,
+                category: 'Transformer',
+                meta: 'By Jacob Devlin et al. (Google)',
+                summary: 'A Transformer-based model for language understanding that learns bidirectional context by pre-training on a "masked language model" task.',
+                innovations: [
+                    '&#128270; Truly bidirectional context understanding.',
+                    '&#127914; Pre-trained using Masked Language Modeling (MLM).',
+                    '&#127941; Set new state-of-the-art on numerous language understanding benchmarks.'
+                ],
+                advantages: 'Deeply understands language context. Can be fine-tuned for a wide variety of downstream tasks with high accuracy.',
+                limitations: 'Pre-training is very computationally expensive. Not designed for generative tasks like GPT.',
+                applications: 'Search engines (Google Search), sentiment analysis, question answering, text classification.',
+                architecture: { type: 'simple', layers: ['Input Text', 'Encoder-Only Transformer', 'Language Representation'] },
+                comparison: { impact: 9, complexity: 8, efficiency: 6 }
+            },
+            'gpt': {
+                name: 'GPT Series',
+                year: 2018,
+                category: 'Transformer',
+                meta: 'By OpenAI',
+                summary: 'A series of massive, generative, Transformer-based models pre-trained to predict the next token in a sequence, enabling powerful text generation capabilities.',
+                innovations: [
+                    '&#128220; Demonstrated the power of massive scaling (billions of parameters).',
+                    '&#129321; Autoregressive, decoder-only architecture optimized for generation.',
+                    '&#128172; Achieved human-like text generation and few-shot learning.'
+                ],
+                advantages: 'State-of-the-art text generation. Can perform a wide range of tasks with natural language prompts (zero/few-shot learning).',
+                limitations: 'Can "hallucinate" or generate incorrect information. Very expensive to train and run. Potential for misuse.',
+                applications: 'Chatbots (ChatGPT), content creation, code generation, summarization, creative writing.',
+                architecture: { type: 'simple', layers: ['Input Prompt', 'Decoder-Only Transformer', 'Generated Text'] },
+                comparison: { impact: 10, complexity: 9, efficiency: 3 }
+            },
+        };
+
+        const categories = {
+            'Foundational': { models: ['mcculloch-pitts', 'perceptron', 'backpropagation'], color: 'bg-sky-500' },
+            'CNN': { models: ['lenet', 'alexnet', 'resnet', 'efficientnet'], color: 'bg-emerald-500' },
+            'Sequential': { models: ['lstm'], color: 'bg-amber-500' },
+            'Generative': { models: ['gan', 'diffusion'], color: 'bg-rose-500' },
+            'Transformer': { models: ['transformer', 'bert', 'gpt'], color: 'bg-violet-500' }
+        };
+
+        let comparisonChart;
+        let currentState = {
+            selectedModelId: 'mcculloch-pitts',
+            activeCategory: 'All'
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initNav();
+            initTimeline();
+            updateContent(currentState.selectedModelId);
+            setupEventListeners();
+        });
+
+        function initNav() {
+            const navContainer = document.getElementById('main-nav');
+            let buttonsHTML = `<button data-category="All" class="nav-button px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm hover:bg-gray-100 active">All Models</button>`;
+            for (const category in categories) {
+                buttonsHTML += `<button data-category="${category}" class="nav-button px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm hover:bg-gray-100">${category}</button>`;
+            }
+            navContainer.innerHTML = buttonsHTML;
+        }
+
+        function initTimeline() {
+            const timelineContainer = document.getElementById('timeline-points');
+            const sortedModels = Object.entries(modelData).sort(([, a], [, b]) => a.year - b.year);
+            timelineContainer.innerHTML = sortedModels.map(([id, model]) => {
+                const categoryInfo = categories[model.category] || { color: 'bg-gray-500' };
+                return `
+                    <div class="flex-1 flex justify-center">
+                        <div id="timeline-point-${id}" data-id="${id}" class="timeline-point w-4 h-4 rounded-full ${categoryInfo.color} border-2 border-white shadow relative flex items-center justify-center">
+                            <div class="timeline-popup absolute bottom-full mb-3 w-max px-3 py-1.5 bg-stone-800 text-white text-xs rounded-md shadow-lg opacity-0 invisible transition-all duration-300 pointer-events-none">
+                                <span class="font-bold">${model.name}</span> (${model.year})
+                                <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-stone-800 rotate-45"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function setupEventListeners() {
+            document.getElementById('timeline-points').addEventListener('click', (e) => {
+                const point = e.target.closest('.timeline-point');
+                if (point && point.dataset.id) {
+                    updateContent(point.dataset.id);
+                }
+            });
+
+            document.getElementById('main-nav').addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const category = e.target.dataset.category;
+                    currentState.activeCategory = category;
+
+                    document.querySelectorAll('#main-nav button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    filterTimeline(category);
+                }
+            });
+        }
+
+        function filterTimeline(category) {
+            const allPoints = document.querySelectorAll('.timeline-point');
+            if (category === 'All') {
+                allPoints.forEach(p => p.style.opacity = '1');
+                return;
+            }
+
+            const categoryModels = categories[category].models;
+            allPoints.forEach(p => {
+                const modelId = p.dataset.id;
+                if (categoryModels.includes(modelId)) {
+                    p.style.opacity = '1';
+                } else {
+                    p.style.opacity = '0.2';
+                }
+            });
+        }
+
+        function updateContent(modelId) {
+            currentState.selectedModelId = modelId;
+            const model = modelData[modelId];
+            if (!model) return;
+
+            document.querySelectorAll('.timeline-point').forEach(p => p.classList.remove('active'));
+            document.getElementById(`timeline-point-${modelId}`).classList.add('active');
+
+            const contentArea = document.querySelector('.lg\\:col-span-3');
+            contentArea.classList.remove('content-fade-in');
+            void contentArea.offsetWidth;
+            contentArea.classList.add('content-fade-in');
+
+            document.getElementById('model-name').textContent = model.name;
+            document.getElementById('model-meta').textContent = `${model.year} • ${model.meta}`;
+            document.getElementById('summary-text').textContent = model.summary;
+
+            const innovationsList = document.getElementById('innovations-list');
+            innovationsList.innerHTML = model.innovations.map(item => `<li class="flex items-start"><span class="mr-3 text-lg text-teal-500">${item.split(' ')[0]}</span><span>${item.substring(item.indexOf(' ') + 1)}</span></li>`).join('');
+
+            renderTabs(modelId);
+            renderArchitectureDiagram(model.architecture);
+            updateComparisonChart(modelId);
+        }
+
+        function renderTabs(modelId) {
+            const model = modelData[modelId];
+            const tabsContainer = document.getElementById('tabs');
+            const tabContentContainer = document.getElementById('tab-content');
+
+            const tabKeys = ['advantages', 'limitations', 'applications'];
+            tabsContainer.innerHTML = tabKeys.map((key, index) =>
+                `<button data-tab="${key}" class="tab-button capitalize py-2 border-b-2 ${index === 0 ? 'active border-teal-500' : 'border-transparent text-stone-500 hover:border-gray-300'}">${key}</button>`
+            ).join('');
+
+            tabContentContainer.innerHTML = `<p class="text-stone-600 leading-relaxed">${model.advantages}</p>`;
+
+            tabsContainer.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const tabKey = e.target.dataset.tab;
+                    tabsContainer.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    tabContentContainer.innerHTML = `<p class="text-stone-600 leading-relaxed">${model[tabKey]}</p>`;
+                }
+            }, { once: true });
+        }
+
+        function renderArchitectureDiagram(arch) {
+            const container = document.getElementById('architecture-diagram');
+            let html = '';
+            const arrow = `<div class="mx-2 text-stone-400 font-sans">&rarr;</div>`;
+
+            switch (arch.type) {
+                case 'simple':
+                    html = `<div class="flex items-center justify-center flex-wrap">${arch.layers.map(l => `<div class="m-1 px-3 py-1.5 bg-stone-200 text-stone-700 rounded-md text-sm font-medium">${l}</div>`).join(arrow)}</div>`;
+                    break;
+                case 'flow':
+                    html = `<div class="flex items-center justify-center flex-wrap">${arch.steps.map(s => `<div class="m-1 px-3 py-1.5 bg-sky-100 text-sky-800 rounded-md text-sm font-medium">${s}</div>`).join(arrow)}</div>`;
+                    break;
+                case 'cnn':
+                    html = `<div class="flex items-center justify-center flex-wrap">${arch.layers.map(l => {
+                        let color = 'bg-emerald-100 text-emerald-800';
+                        if (l.toLowerCase() === 'pool') color = 'bg-amber-100 text-amber-800';
+                        if (l.toLowerCase().includes('fc')) color = 'bg-violet-100 text-violet-800';
+                        return `<div class="m-1 px-2 py-1 ${color} rounded text-xs font-semibold">${l}</div>`;
+                    }).join(arrow)}</div>`;
+                    break;
+                case 'resnet':
+                    html = `
+                        <div class="flex flex-col items-center text-sm">
+                            <div>Input</div>
+                            <div class="my-1 text-stone-400">&darr;</div>
+                            <div class="relative p-4 border-2 border-dashed border-stone-300 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded">Conv</div>
+                                    ${arrow}
+                                    <div class="px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded">ReLU</div>
+                                    ${arrow}
+                                    <div class="px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded">Conv</div>
+                                </div>
+                                <div class="absolute left-0 top-1/2 w-full h-px bg-stone-300 -z-10"></div>
+                                <div class="absolute left-1/2 -bottom-4 h-4 w-px bg-stone-300"></div>
+                                <div class="absolute right-full top-1/2 border-t-2 border-r-2 border-b-2 border-teal-400 w-4 h-16 rounded-r-lg -mr-px"></div>
+                                <div class="absolute left-full top-1/2 w-4 h-16 -ml-px"></div>
+                                <div class="absolute right-0 top-1/2 transform translate-x-full ml-2 text-teal-600 font-semibold text-xs">Skip</div>
+                            </div>
+                            <div class="my-1 text-stone-400">&darr;</div>
+                            <div>Output</div>
+                        </div>
+                    `;
+                    break;
+                case 'rnn_gated':
+                    html = `
+                        <div class="p-4 border-2 border-amber-300 rounded-lg bg-amber-50 w-full text-center">
+                            <div class="font-bold text-amber-800 mb-2">Recurrent Unit (${arch.core})</div>
+                            <div class="flex justify-center flex-wrap gap-2">
+                                ${arch.gates.map(g => `<div class="px-3 py-1 bg-amber-200 text-amber-900 rounded-full text-xs font-medium">${g}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'gan':
+                    html = `
+                        <div class="flex flex-col items-center space-y-4 text-sm">
+                            <div class="px-4 py-2 bg-rose-100 text-rose-800 rounded-lg font-semibold">Generator</div>
+                            <div class="flex items-center">
+                                <span class="text-stone-400 transform -rotate-90 origin-center">&or;</span>
+                                <span class="mx-4">Fake Data</span>
+                                <span class="text-stone-400 transform rotate-90 origin-center">&or;</span>
+                            </div>
+                            <div class="px-4 py-2 bg-sky-100 text-sky-800 rounded-lg font-semibold">Discriminator</div>
+                             <div class="flex items-center">
+                                <span class="text-stone-400 transform rotate-90 origin-center">&or;</span>
+                                <span class="mx-4">Real Data</span>
+                                <span class="text-stone-400 transform -rotate-90 origin-center">&or;</span>
+                            </div>
+                            <div class="text-sm font-semibold">"Real" or "Fake"?</div>
+                        </div>
+                    `;
+                    break;
+                case 'transformer':
+                    html = `
+                        <div class="flex flex-col items-center space-y-2 text-sm w-full">
+                            <div class="font-semibold">Encoder</div>
+                            <div class="p-3 bg-violet-100 text-violet-800 rounded-lg w-full text-center">Multi-Head Self-Attention</div>
+                            <div class="text-stone-400">&darr;</div>
+                            <div class="p-3 bg-violet-100 text-violet-800 rounded-lg w-full text-center">Feed Forward Network</div>
+                            <div class="my-2 text-2xl text-stone-400">&harr;</div>
+                            <div class="font-semibold">Decoder</div>
+                            <div class="p-3 bg-purple-100 text-purple-800 rounded-lg w-full text-center">Masked Multi-Head Self-Attention</div>
+                             <div class="text-stone-400">&darr;</div>
+                            <div class="p-3 bg-purple-100 text-purple-800 rounded-lg w-full text-center">Feed Forward Network</div>
+                        </div>
+                    `;
+                    break;
+                default:
+                    html = `<p class="text-stone-400">No diagram available.</p>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function updateComparisonChart(modelId) {
+            const model = modelData[modelId];
+            const category = model.category;
+            const relatedModels = categories[category].models
+                .filter(id => id !== modelId)
+                .slice(0, 2);
+
+            const datasets = [{
+                label: model.name,
+                data: Object.values(model.comparison),
+                backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                borderColor: 'rgba(255, 193, 7, 1)',
+                pointBackgroundColor: 'rgba(255, 193, 7, 1)',
+                borderWidth: 2
+            }];
+
+            relatedModels.forEach((id, index) => {
+                const relatedModel = modelData[id];
+                const colors = [
+                    { bg: 'rgba(77, 182, 172, 0.2)', border: 'rgba(77, 182, 172, 1)' },
+                    { bg: 'rgba(129, 140, 248, 0.2)', border: 'rgba(129, 140, 248, 1)' }
+                ];
+                datasets.push({
+                    label: relatedModel.name,
+                    data: Object.values(relatedModel.comparison),
+                    backgroundColor: colors[index].bg,
+                    borderColor: colors[index].border,
+                    pointBackgroundColor: colors[index].border,
+                    borderWidth: 1.5
+                });
+            });
+
+            const data = {
+                labels: ['Impact', 'Complexity', 'Efficiency'],
+                datasets: datasets
+            };
+
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 10,
+                        ticks: {
+                            stepSize: 2,
+                            backdropColor: 'rgba(0,0,0,0)'
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 14,
+                                weight: '500'
+                            },
+                            color: '#4A4A4A'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.r !== null) {
+                                    label += context.parsed.r;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            };
+
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            if (comparisonChart) {
+                comparisonChart.destroy();
+            }
+            comparisonChart = new Chart(ctx, {
+                type: 'radar',
+                data: data,
+                options: options
+            });
+        }
+    </script>
+</body>
+
+</html>
