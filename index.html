@@ -15,7 +15,7 @@
     <!-- Visualization & Content Choices: 
         - Timeline (Change/Organize): An interactive HTML/CSS timeline shows the evolution. Clicking a model updates the view. Justification: Provides an intuitive historical overview.
         - Model Comparison (Compare): A dynamic Chart.js radar chart compares qualitative aspects (Complexity, Impact, Efficiency) of a selected model against its contemporaries. Justification: Visual comparison is more effective than text.
-        - Architectural Diagrams (Inform/Organize): Simplified diagrams built with HTML/Tailwind CSS represent model structures (e.g., skip connections, GAN loops). Justification: Visuals are more intuitive than descriptions.
+        - Architectural Diagrams (Inform/Organize): Simplified diagrams built with HTML/Tailwind CSS represent model structures (e.g., skip connections, GAN loops, U-Net). Justification: Visuals are more intuitive than descriptions.
         - Tabbed Info (Organize): Detailed text (Advantages, Limitations, Applications) is organized into tabs to reduce clutter. Justification: Allows user-directed deep dives.
         - Key Stats (Inform): A card displays key facts like year and developers for quick reference.
     -->
@@ -257,6 +257,40 @@
                 architecture: { type: 'cnn', layers: ['Conv', 'Pool', 'Conv', 'Pool', 'Conv', 'Conv', 'Conv', 'Pool', 'FC', 'FC', 'Output'] },
                 comparison: { impact: 9, complexity: 6, efficiency: 3 }
             },
+            'vgg': {
+                name: 'VGGNet',
+                year: 2014,
+                category: 'CNN',
+                meta: 'By Simonyan and Zisserman',
+                summary: 'A deep convolutional network that demonstrated the importance of having a very deep network with small (3x3) convolutional filters. Simple and elegant architecture.',
+                innovations: [
+                    '&#128205; Emphasized the importance of network depth over wider kernels.',
+                    '&#128269; Used a simple, uniform architecture with 3x3 conv filters throughout.',
+                    '&#128202; Showed that stacking small convolutions is more effective than large ones.'
+                ],
+                advantages: 'Relatively simple and uniform architecture, making it easy to understand and implement. A good starting point for transfer learning.',
+                limitations: 'Very computationally expensive and has a large memory footprint due to the number of parameters.',
+                applications: 'Image classification, object detection, and as a standard pre-trained feature extractor.',
+                architecture: { type: 'cnn', layers: ['Conv3x3', 'Conv3x3', 'Pool', 'Conv3x3', 'Conv3x3', 'Pool', 'FC', 'Output'] },
+                comparison: { impact: 7, complexity: 5, efficiency: 3 }
+            },
+            'inception': {
+                name: 'Inception',
+                year: 2014,
+                category: 'CNN',
+                meta: 'By Szegedy et al. (Google)',
+                summary: 'A series of CNNs (e.g., GoogLeNet) that introduced the "Inception module," a building block that allows the network to choose the optimal filter size for a given layer.',
+                innovations: [
+                    '&#128161; Introduced the Inception module with parallel convolutions.',
+                    '&#128208; Aims to reduce computational cost while increasing network width.',
+                    '&#128273; Used 1x1 convolutions for dimensionality reduction.'
+                ],
+                advantages: 'Extremely computationally efficient for its performance. High accuracy with fewer parameters than VGG or AlexNet.',
+                limitations: 'The architecture is very complex and difficult to modify or debug compared to simpler models.',
+                applications: 'Large-scale image classification and as a backbone for object detection.',
+                architecture: { type: 'inception' },
+                comparison: { impact: 8, complexity: 8, efficiency: 8 }
+            },
             'resnet': {
                 name: 'ResNet',
                 year: 2015,
@@ -274,6 +308,23 @@
                 architecture: { type: 'resnet', layers: ['Input', 'Conv Block', 'Residual Block (Skip Connection)', 'Output'] },
                 comparison: { impact: 10, complexity: 7, efficiency: 6 }
             },
+            'unet': {
+                name: 'U-Net',
+                year: 2015,
+                category: 'CNN',
+                meta: 'By Ronneberger, Fischer, and Brox',
+                summary: 'A convolutional network architecture designed for biomedical image segmentation, characterized by its U-shaped encoder-decoder structure and skip connections.',
+                innovations: [
+                    '&#128065; U-shaped architecture for precise pixel-level segmentation.',
+                    '&#128279; Skip connections directly linking the contracting and expanding paths.',
+                    '&#128270; Enabled precise localization and context for pixel-wise tasks.'
+                ],
+                advantages: 'Extremely effective for image segmentation, especially with limited training data. Can generate high-resolution segmentation masks.',
+                limitations: 'Primarily designed for segmentation, not general classification. Can be computationally intensive for large images.',
+                applications: 'Biomedical image segmentation (e.g., detecting tumors, cells), satellite image analysis, object segmentation.',
+                architecture: { type: 'unet' },
+                comparison: { impact: 9, complexity: 8, efficiency: 6 }
+            },
             'efficientnet': {
                 name: 'EfficientNet',
                 year: 2019,
@@ -289,7 +340,7 @@
                 limitations: 'The compound scaling coefficients were found via neural architecture search, which is computationally expensive to replicate.',
                 applications: 'Image classification, object detection, and any vision task where computational efficiency is critical.',
                 architecture: { type: 'flow', steps: ['Input Image', 'MBConv Blocks', 'Compound Scaling (Depth, Width, Resolution)', 'Output'] },
-                comparison: { impact: 9, complexity: 8, efficiency: 10 }
+                comparison: { impact: 10, complexity: 8, efficiency: 10 }
             },
             'lstm': {
                 name: 'LSTM',
@@ -397,7 +448,7 @@
 
         const categories = {
             'Foundational': { models: ['mcculloch-pitts', 'perceptron', 'backpropagation'], color: 'bg-sky-500' },
-            'CNN': { models: ['lenet', 'alexnet', 'resnet', 'efficientnet'], color: 'bg-emerald-500' },
+            'CNN': { models: ['lenet', 'alexnet', 'vgg', 'inception', 'resnet', 'unet', 'efficientnet'], color: 'bg-emerald-500' },
             'Sequential': { models: ['lstm'], color: 'bg-amber-500' },
             'Generative': { models: ['gan', 'diffusion'], color: 'bg-rose-500' },
             'Transformer': { models: ['transformer', 'bert', 'gpt'], color: 'bg-violet-500' }
@@ -544,7 +595,7 @@
                 case 'cnn':
                     html = `<div class="flex items-center justify-center flex-wrap">${arch.layers.map(l => {
                         let color = 'bg-emerald-100 text-emerald-800';
-                        if (l.toLowerCase() === 'pool') color = 'bg-amber-100 text-amber-800';
+                        if (l.toLowerCase().includes('pool')) color = 'bg-amber-100 text-amber-800';
                         if (l.toLowerCase().includes('fc')) color = 'bg-violet-100 text-violet-800';
                         return `<div class="m-1 px-2 py-1 ${color} rounded text-xs font-semibold">${l}</div>`;
                     }).join(arrow)}</div>`;
@@ -570,6 +621,36 @@
                             </div>
                             <div class="my-1 text-stone-400">&darr;</div>
                             <div>Output</div>
+                        </div>
+                    `;
+                    break;
+                case 'inception':
+                    html = `
+                        <div class="p-4 border-2 border-emerald-300 rounded-lg bg-emerald-50 w-full text-center text-sm">
+                            <div class="font-bold text-emerald-800 mb-2">Inception Module</div>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="p-2 bg-emerald-200 rounded-md">1x1 Convolution</div>
+                                <div class="p-2 bg-emerald-200 rounded-md">3x3 Convolution</div>
+                                <div class="p-2 bg-emerald-200 rounded-md">5x5 Convolution</div>
+                                <div class="p-2 bg-emerald-200 rounded-md">Max Pooling</div>
+                                <div class="font-semibold text-emerald-700">Concatenated Output</div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'unet':
+                    html = `
+                        <div class="flex justify-center items-center h-full text-sm">
+                            <div class="flex flex-col items-center">
+                                <div class="px-3 py-1 bg-emerald-200 rounded-full">Encoder</div>
+                                <div class="w-1 h-12 bg-emerald-300 my-1"></div>
+                            </div>
+                            <div class="flex flex-col items-center mx-12">
+                                <div class="px-3 py-1 bg-sky-200 rounded-full">Decoder</div>
+                                <div class="w-1 h-12 bg-sky-300 my-1"></div>
+                            </div>
+                            <div class="absolute top-1/2 right-1/2 transform translate-x-full -translate-y-1/2 w-20 border-b-2 border-teal-400"></div>
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-full -translate-y-1/2 w-20 border-b-2 border-teal-400"></div>
                         </div>
                     `;
                     break;
